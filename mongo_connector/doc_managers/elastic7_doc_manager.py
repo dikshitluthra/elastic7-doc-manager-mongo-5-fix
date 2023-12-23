@@ -164,6 +164,91 @@ class AutoCommiter(threading.Thread):
             last_send += self._sleep_interval
             last_commit += self._sleep_interval
 
+class MongoUpdateSpecV1(object):
+    """
+     Examples of object received from mongo
+     For updating fields
+     {
+		"$v" : 1,
+		"$set" : {
+			"company_name" : "new comp name"
+		}
+	}
+
+    For deleting fields
+     {
+		"$v" : 1,
+		"$unset" : {
+			"company_name" : ""
+		}
+	}
+    """
+    def __init__(self, update_spec) -> None:
+        self.update_spec = update_spec
+
+    def is_a_update(self):
+        return '$set' in self.update_spec or '$unset' in self.update_spec
+
+    def convert_update_spec(self):
+        return self.update_spec
+
+    def set_fields(self):
+        return self.update_spec.get('$set',{}).items()
+
+    def unset_fields(self):
+        return self.update_spec.get('$unset',{}).keys()
+
+class MongoUpdateSpecV2(object):
+    """
+     Examples of object received from mongo
+     For updating fields
+    {
+		"$v" : 2,
+		"diff" : {
+			"u" : {
+				"company_name" : "new comp name",
+				"website_url" : "https://www.namename.com"
+			}
+		}
+	}
+    For deleting fields
+    {
+		"$v" : 2,
+		"diff" : {
+			"d" : {
+				"deleted_field1" : false,
+				"deleted_field2" : false
+			}
+		}
+	}
+    """
+    def __init__(self, update_spec) -> None:
+        self.update_spec = update_spec
+
+    def is_a_update(self):
+        diff = self.update_spec.get('diff',{})
+        return 'u' in diff or 'd' in diff
+
+    def convert_update_spec(self):
+        diff = self.update_spec.get('diff',{})
+        update_spec = {}
+        if 'u' in diff:
+            update_spec['$set'] = diff['u']
+        if 'd' in diff:
+            update_spec['$unset'] = diff['d']
+        return update_spec
+
+    def set_fields(self):
+        return self.update_spec.get('diff',{}).get('u',{}).items()
+
+    def unset_fields(self):
+        return self.update_spec.get('diff',{}).get('d', {}).keys()
+
+
+def _parse_mongo_update_spec(update_spec):
+    version = update_spec.get('$v', -1)
+    return MongoUpdateSpecV2(update_spec) if version == 2 else MongoUpdateSpecV1(update_spec)
+
 
 class DocManager(DocManagerBase):
     """Elasticsearch implementation of the DocManager interface.
@@ -266,10 +351,15 @@ class DocManager(DocManagerBase):
         self.commit()
 
     def apply_update(self, doc, update_spec):
-        if "$set" not in update_spec and "$unset" not in update_spec:
+        
+        mongo_spec = _parse_mongo_update_spec(update_spec)
+
+        if not mongo_spec.is_a_update():
             # Don't try to add ns and _ts fields back in from doc
             return update_spec
-        return super(DocManager, self).apply_update(doc, update_spec)
+        
+        converted_update_spec = mongo_spec.convert_update_spec()
+        return super(DocManager, self).apply_update(doc, converted_update_spec)
 
     @wrap_exceptions
     def handle_command(self, doc, namespace, timestamp):
