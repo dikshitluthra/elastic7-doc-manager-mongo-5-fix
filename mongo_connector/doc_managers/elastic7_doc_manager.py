@@ -236,7 +236,7 @@ class MongoUpdateSpecV2(object):
 
     def is_a_update(self):
         diff = self.update_spec.get('diff',{})
-        return 'u' in diff or 'd' in diff
+        return 'u' in diff or 'd' in diff or 'i' in diff
 
     def convert_update_spec(self):
         
@@ -259,10 +259,10 @@ class MongoUpdateSpecV2(object):
         
 
     def set_fields(self):
-        return self.update_spec.get('diff',{}).get('u',{}).items()
+        return self.update_spec.get('diff',{}).get('i',{}).update(diff.get("u",{})).items()
 
     def unset_fields(self):
-        return self.update_spec.get('diff',{}).get('d', {}).keys()
+        return self.update_spec.get('diff',{}).get('d',{}).keys()
 
 
 def _parse_mongo_update_spec(update_spec):
