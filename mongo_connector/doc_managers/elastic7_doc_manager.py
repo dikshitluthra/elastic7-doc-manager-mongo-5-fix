@@ -211,6 +211,15 @@ class MongoUpdateSpecV2(object):
 			}
 		}
 	}
+    For inserting fields
+    {
+		"$v" : 2,
+		"diff" : {
+			"i" : {
+				"company_name" : "new comp name",
+			}
+		}
+	}
     For deleting fields
     {
 		"$v" : 2,
@@ -230,13 +239,24 @@ class MongoUpdateSpecV2(object):
         return 'u' in diff or 'd' in diff
 
     def convert_update_spec(self):
+        
         diff = self.update_spec.get('diff',{})
         update_spec = {}
-        if 'u' in diff:
-            update_spec['$set'] = diff['u']
+        
+        """ if diff has 'i' or 'u' then it is a update operation 
+            add it to the $set in update_spec
+            if diff has 'd' then it is a delete operation
+            add it to the $unset in update_spec
+        """
+        if 'i' in diff or 'u' in diff:
+            update_spec['$set'] = diff.get('i',{})
+            update_spec['$set'].update(diff.get('u',{}))
         if 'd' in diff:
-            update_spec['$unset'] = diff['d']
+            update_spec['$unset'] = diff.get('d',{})
+        
         return update_spec
+
+        
 
     def set_fields(self):
         return self.update_spec.get('diff',{}).get('u',{}).items()

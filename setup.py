@@ -7,8 +7,8 @@ setuptools.setup(
     description="Elastic7 plugin for mongo-connector",
     platforms=["any"],
     author="anna herlihy",
-    author_email="mongodb-user@googlegroups.com, tharun@nineleaps.com",
-    url="https://github.com/tmpaul06/elastic7-doc-manager",
+    author_email="mongodb-user@googlegroups.com, tharun@nineleaps.com, dikshit.luthra@enablix.com",
+    url="https://github.com/enablixinc/elastic7-doc-manager-mongo-5-fix",
     install_requires=["mongo-connector>=2.5.0", "importlib_metadata"],
     python_requires=">=3.4",
     extras_require={
