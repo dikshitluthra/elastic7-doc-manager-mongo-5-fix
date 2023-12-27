@@ -192,16 +192,10 @@ class MongoUpdateSpecV1(object):
     def convert_update_spec(self):
         return self.update_spec
 
-    def set_fields(self):
-        return self.update_spec.get('$set',{}).items()
-
-    def unset_fields(self):
-        return self.update_spec.get('$unset',{}).keys()
-
 class MongoUpdateSpecV2(object):
     """
-     Examples of object received from mongo
-     For updating fields
+    Examples of object received from mongo
+    For updating fields
     {
 		"$v" : 2,
 		"diff" : {
@@ -230,17 +224,38 @@ class MongoUpdateSpecV2(object):
 			}
 		}
 	}
+
+    In mongodb atlas, the format is seen as below
+    For updating fields
+    {
+		"$v" : 2,
+		"diff" : {
+            "sfile": {
+                "u" : {
+                    "company_name" : "new comp name",
+                    "website_url" : "https://www.namename.com"
+                }
+            }
+		}
+	}
     """
     def __init__(self, update_spec) -> None:
         self.update_spec = update_spec
 
     def is_a_update(self):
+        
         diff = self.update_spec.get('diff',{})
+        if 'sfile' in diff:
+            diff = diff.get('sfile',{})
+
         return 'u' in diff or 'd' in diff or 'i' in diff
 
     def convert_update_spec(self):
         
         diff = self.update_spec.get('diff',{})
+        if 'sfile' in diff:
+            diff = diff.get('sfile',{})
+
         update_spec = {}
         
         """ if diff has 'i' or 'u' then it is a update operation 
@@ -255,14 +270,6 @@ class MongoUpdateSpecV2(object):
             update_spec['$unset'] = diff.get('d',{})
         
         return update_spec
-
-        
-
-    def set_fields(self):
-        return self.update_spec.get('diff',{}).get('i',{}).update(diff.get("u",{})).items()
-
-    def unset_fields(self):
-        return self.update_spec.get('diff',{}).get('d',{}).keys()
 
 
 def _parse_mongo_update_spec(update_spec):
