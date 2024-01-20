@@ -242,19 +242,65 @@ class MongoUpdateSpecV2(object):
     def __init__(self, update_spec) -> None:
         self.update_spec = update_spec
 
+    def flatten_dict(d, parent_key='', sep='.'):
+        flattened = {}
+        for k, v in d.items():
+            new_key = f"{parent_key}{sep}{k}" if parent_key else k
+            if isinstance(v, dict):
+                flattened.update(flatten_dict(v, new_key, sep=sep))
+            else:
+                flattened[new_key] = v
+        return flattened
+
+    def check_and_get_s_diff(self):
+
+        original_diff = self.update_spec.get('diff',{})
+        filtered_diff = {k: v for k, v in original_diff.items() if k.startswith('s')}
+
+        flattened_diff = {}
+
+        if filtered_diff:    
+            
+            for k,v in filtered_diff.items():
+                
+                if 'u' in v:
+                    if not 'u' in flattened_diff:
+                        flattened_diff['u'] = {}
+                    u = flattened_diff['u']
+                    u.update(flatten_dict(v.get('u'), k, '.'))
+                    
+                if 'd' in v:
+                    if not 'd' in flattened_diff:
+                        flattened_diff['d'] = {}
+                    d = flattened_diff['d']
+                    d.update(flatten_dict(v.get('d'), k, '.'))
+                    
+                if 'i' in v:
+                    if not 'i' in flattened_diff:
+                        flattened_diff['i'] = {}
+                    i = flattened_diff['i']
+                    i.update(flatten_dict(v.get('i'), k, '.'))
+        
+        
+        return flattened_diff
+
     def is_a_update(self):
         
         diff = self.update_spec.get('diff',{})
-        if 'sfile' in diff:
-            diff = diff.get('sfile',{})
+
+        s_diff = self.check_and_get_s_diff()
+        if s_diff:
+            diff = s_diff
 
         return 'u' in diff or 'd' in diff or 'i' in diff
 
     def convert_update_spec(self):
         
-        diff = self.update_spec.get('diff',{})
-        if 'sfile' in diff:
-            diff = diff.get('sfile',{})
+        diff = self.update_spec.get('diff',{})  
+        
+        s_diff = self.check_and_get_s_diff()
+        if s_diff:
+            diff = s_diff
 
         update_spec = {}
         
