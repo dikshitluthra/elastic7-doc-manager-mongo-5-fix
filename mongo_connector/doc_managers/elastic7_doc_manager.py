@@ -242,14 +242,33 @@ class MongoUpdateSpecV2(object):
     def __init__(self, update_spec) -> None:
         self.update_spec = update_spec
 
+    def remove_s_prefix(d):
+        
+        new_dict = {}
+
+        for key, value in d.items():
+        
+            if key.startswith('s'):
+                new_key = key.replace('s', '', 1)  # Remove the 's' prefix from the key once
+                new_dict[new_key] = value
+            else:
+                new_dict[key] = value
+
+        return new_dict
+
     def flatten_dict(d, parent_key='', sep='.'):
+        
         flattened = {}
+        
         for k, v in d.items():
             new_key = f"{parent_key}{sep}{k}" if parent_key else k
             if isinstance(v, dict):
                 flattened.update(flatten_dict(v, new_key, sep=sep))
             else:
                 flattened[new_key] = v
+        
+        flattened = remove_s_prefix(flattened)
+
         return flattened
 
     def check_and_get_s_diff(self):
@@ -297,7 +316,7 @@ class MongoUpdateSpecV2(object):
     def convert_update_spec(self):
         
         diff = self.update_spec.get('diff',{})  
-        
+
         s_diff = self.check_and_get_s_diff()
         if s_diff:
             diff = s_diff
