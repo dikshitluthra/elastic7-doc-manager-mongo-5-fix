@@ -242,7 +242,7 @@ class MongoUpdateSpecV2(object):
     def __init__(self, update_spec) -> None:
         self.update_spec = update_spec
 
-    def remove_s_prefix(d):
+    def remove_s_prefix(self, d):
         
         new_dict = {}
 
@@ -256,18 +256,18 @@ class MongoUpdateSpecV2(object):
 
         return new_dict
 
-    def flatten_dict(d, parent_key='', sep='.'):
+    def flatten_dict(self, d, parent_key='', sep='.'):
         
         flattened = {}
         
         for k, v in d.items():
             new_key = f"{parent_key}{sep}{k}" if parent_key else k
             if isinstance(v, dict):
-                flattened.update(flatten_dict(v, new_key, sep=sep))
+                flattened.update(self.flatten_dict(v, new_key, sep=sep))
             else:
                 flattened[new_key] = v
         
-        flattened = remove_s_prefix(flattened)
+        flattened = self.remove_s_prefix(flattened)
 
         return flattened
 
@@ -286,19 +286,19 @@ class MongoUpdateSpecV2(object):
                     if not 'u' in flattened_diff:
                         flattened_diff['u'] = {}
                     u = flattened_diff['u']
-                    u.update(flatten_dict(v.get('u'), k, '.'))
+                    u.update(self.flatten_dict(v.get('u'), k, '.'))
                     
                 if 'd' in v:
                     if not 'd' in flattened_diff:
                         flattened_diff['d'] = {}
                     d = flattened_diff['d']
-                    d.update(flatten_dict(v.get('d'), k, '.'))
+                    d.update(self.flatten_dict(v.get('d'), k, '.'))
                     
                 if 'i' in v:
                     if not 'i' in flattened_diff:
                         flattened_diff['i'] = {}
                     i = flattened_diff['i']
-                    i.update(flatten_dict(v.get('i'), k, '.'))
+                    i.update(self.flatten_dict(v.get('i'), k, '.'))
         
         
         return flattened_diff
