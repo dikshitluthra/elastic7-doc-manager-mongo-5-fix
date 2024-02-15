@@ -276,6 +276,11 @@ class MongoUpdateSpecV2(object):
         original_diff = self.update_spec.get('diff',{})
         filtered_diff = {k: v for k, v in original_diff.items() if k.startswith('s')}
 
+        flattened_diff = self.create_flattened_diff(filtered_diff)
+        return flattened_diff
+
+    def create_flattened_diff(self, filtered_diff, prefix = ""):
+
         flattened_diff = {}
 
         if filtered_diff:    
@@ -286,21 +291,30 @@ class MongoUpdateSpecV2(object):
                     if not 'u' in flattened_diff:
                         flattened_diff['u'] = {}
                     u = flattened_diff['u']
-                    u.update(self.flatten_dict(v.get('u'), k, '.'))
+                    u.update(self.flatten_dict(v.get('u'), prefix + k, '.'))
                     
                 if 'd' in v:
                     if not 'd' in flattened_diff:
                         flattened_diff['d'] = {}
                     d = flattened_diff['d']
-                    d.update(self.flatten_dict(v.get('d'), k, '.'))
+                    d.update(self.flatten_dict(v.get('d'), prefix + k, '.'))
                     
                 if 'i' in v:
                     if not 'i' in flattened_diff:
                         flattened_diff['i'] = {}
                     i = flattened_diff['i']
-                    i.update(self.flatten_dict(v.get('i'), k, '.'))
-        
-        
+                    i.update(self.flatten_dict(v.get('i'), prefix + k, '.'))
+
+                if 'a' in v: # Array update
+                    arr_update = {m: n for m, n in v.items() if m.startswith('s')}
+
+                    if arr_update:
+                        arr_update = self.remove_s_prefix(arr_update)
+                        flattened_diff = self.create_flattened_diff(arr_update, prefix + k + ".")
+            
+            if not flattened_diff:
+                flattened_diff = { "__unknownupdate": filtered_diff }
+
         return flattened_diff
 
     def is_a_update(self):
@@ -311,7 +325,7 @@ class MongoUpdateSpecV2(object):
         if s_diff:
             diff = s_diff
 
-        return 'u' in diff or 'd' in diff or 'i' in diff
+        return 'u' in diff or 'd' in diff or 'i' in diff or 'a' in diff
 
     def convert_update_spec(self):
         
