@@ -350,7 +350,7 @@ class MongoUpdateSpecV2(object):
         if s_diff:
             diff = s_diff
 
-        print(diff)
+        # print(diff)
 
         update_spec = {}
         
@@ -365,7 +365,7 @@ class MongoUpdateSpecV2(object):
         if 'd' in diff:
             update_spec['$unset'] = diff.get('d',{})
 
-        print(update_spec)
+        # print(update_spec)
         
         return update_spec
 
