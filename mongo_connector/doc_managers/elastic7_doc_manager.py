@@ -318,9 +318,11 @@ class MongoUpdateSpecV2(object):
                         i.update(self.flatten_dict(v.get('i'), prefix + k, '.'))
 
                     if 'a' in v: # Array update
-                        arr_update = {prefix + k1 + "." + m.replace('u','', 1): { 'u': n } for m, n in v.items() if m.startswith('u')}
-                        print(arr_update)
-                        flattened_diff = self.create_flattened_diff(arr_update, '')
+                        # arr_update = {prefix + k1 + "." + m.replace('u','', 1): { 'u': n } for m, n in v.items() if m.startswith('u')}
+                        # can't handle arr update as the base document manager expect a complete array element
+                        # earlier mongodb used to log the complete array element in the diff
+                        # print(arr_update)
+                        flattened_diff = { "__arrupdt": filtered_diff}
 
                 elif k.startswith('s'):
                     flattened_diff = self.create_flattened_diff(v, prefix + k1 + '.')
@@ -361,7 +363,7 @@ class MongoUpdateSpecV2(object):
         if 'd' in diff:
             update_spec['$unset'] = diff.get('d',{})
 
-        print(update_spec)
+        # print(update_spec)
         
         return update_spec
 
