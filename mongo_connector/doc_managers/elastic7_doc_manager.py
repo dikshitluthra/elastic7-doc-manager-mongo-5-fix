@@ -321,7 +321,7 @@ class MongoUpdateSpecV2(object):
                         arr_update = {prefix + k1 + "." + m.replace('u','', 1): { 'u': n } for m, n in v.items() if m.startswith('u')}
                         print(arr_update)
                         flattened_diff = self.create_flattened_diff(arr_update, '')
-                        
+
                 elif k.startswith('s'):
                     flattened_diff = self.create_flattened_diff(v, prefix + k1 + '.')
             
@@ -360,6 +360,8 @@ class MongoUpdateSpecV2(object):
             update_spec['$set'].update(diff.get('u',{}))
         if 'd' in diff:
             update_spec['$unset'] = diff.get('d',{})
+
+        print(update_spec)
         
         return update_spec
 
