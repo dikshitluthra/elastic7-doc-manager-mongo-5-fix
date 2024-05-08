@@ -322,13 +322,13 @@ class MongoUpdateSpecV2(object):
                         # can't handle arr update as the base document manager expect a complete array element
                         # earlier mongodb used to log the complete array element in the diff
                         # print(arr_update)
-                        flattened_diff = { "__arrupdt": filtered_diff}
+                        flattened_diff = { "u": { "__arrupdt": filtered_diff} }
 
                 elif k.startswith('s'):
                     flattened_diff = self.create_flattened_diff(v, prefix + k1 + '.')
             
             if not flattened_diff:
-                flattened_diff = { "__unknownupdate": filtered_diff }
+                flattened_diff = { "u": { "__unknownupdate": filtered_diff } }
 
         return flattened_diff
 
@@ -349,6 +349,8 @@ class MongoUpdateSpecV2(object):
         s_diff = self.check_and_get_s_diff()
         if s_diff:
             diff = s_diff
+
+        print(diff)
 
         update_spec = {}
         
