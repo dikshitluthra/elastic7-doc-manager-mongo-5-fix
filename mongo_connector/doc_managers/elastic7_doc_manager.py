@@ -260,13 +260,16 @@ class MongoUpdateSpecV2(object):
         
         flattened = {}
         
-        for k, v in d.items():
-            new_key = f"{parent_key}{sep}{k}" if parent_key else k
-            if isinstance(v, dict):
-                flattened.update(self.flatten_dict(v, new_key, sep=sep))
-            else:
-                flattened[new_key] = v
-        
+        if (isinstance(d, dict)):
+            for k, v in d.items():
+                new_key = f"{parent_key}{sep}{k}" if parent_key else k
+                if isinstance(v, dict):
+                    flattened.update(self.flatten_dict(v, new_key, sep=sep))
+                else:
+                    flattened[new_key] = v
+        elif parent_key:
+            flattened[parent_key] = d
+
         flattened = self.remove_s_prefix(flattened)
 
         return flattened
@@ -286,28 +289,41 @@ class MongoUpdateSpecV2(object):
         if filtered_diff:    
             
             for k,v in filtered_diff.items():
-                
-                if 'u' in v:
-                    if not 'u' in flattened_diff:
-                        flattened_diff['u'] = {}
-                    u = flattened_diff['u']
-                    u.update(self.flatten_dict(v.get('u'), prefix + k, '.'))
-                    
-                if 'd' in v:
-                    if not 'd' in flattened_diff:
-                        flattened_diff['d'] = {}
-                    d = flattened_diff['d']
-                    d.update(self.flatten_dict(v.get('d'), prefix + k, '.'))
-                    
-                if 'i' in v:
-                    if not 'i' in flattened_diff:
-                        flattened_diff['i'] = {}
-                    i = flattened_diff['i']
-                    i.update(self.flatten_dict(v.get('i'), prefix + k, '.'))
 
-                if 'a' in v: # Array update
-                    arr_update = {prefix + k.replace('s', '', 1) + "." + m.replace('u','', 1): n for m, n in v.items() if m.startswith('u')}
-                    flattened_diff = self.create_flattened_diff(arr_update, '.')
+                k1 = k.replace('s', '', 1)
+
+                if 'u' in v or 'd' in v or 'i' in 'v' or 'a' in v:
+                    if 'u' in v:
+                        if not 'u' in flattened_diff:
+                            flattened_diff['u'] = {}
+                        u = flattened_diff['u']
+                        
+                        updt = self.flatten_dict(v.get('u'), prefix + k, '.')
+
+                        if (isinstance(updt, dict)):
+                            u.update(updt)
+                        else:
+                            flattened_diff['u'] = updt
+                        
+                    if 'd' in v:
+                        if not 'd' in flattened_diff:
+                            flattened_diff['d'] = {}
+                        d = flattened_diff['d']
+                        d.update(self.flatten_dict(v.get('d'), prefix + k, '.'))
+                        
+                    if 'i' in v:
+                        if not 'i' in flattened_diff:
+                            flattened_diff['i'] = {}
+                        i = flattened_diff['i']
+                        i.update(self.flatten_dict(v.get('i'), prefix + k, '.'))
+
+                    if 'a' in v: # Array update
+                        arr_update = {prefix + k1 + "." + m.replace('u','', 1): { 'u': n } for m, n in v.items() if m.startswith('u')}
+                        print(arr_update)
+                        flattened_diff = self.create_flattened_diff(arr_update, '')
+                        
+                elif k.startswith('s'):
+                    flattened_diff = self.create_flattened_diff(v, prefix + k1 + '.')
             
             if not flattened_diff:
                 flattened_diff = { "__unknownupdate": filtered_diff }
